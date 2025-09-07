@@ -4,12 +4,10 @@ import crypto from 'crypto';
 const ticketSchema = new mongoose.Schema({
   ticketId: {
     type: String,
-    required: true,
     unique: true
   },
   qrCode: {
     type: String,
-    required: true,
     unique: true
   },
   event: {
@@ -42,7 +40,7 @@ const ticketSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
     required: true,
-    enum: ['ORANGE_MONEY', 'WAVE', 'FREE_MONEY', 'TOUCH_POINT', 'PAYTECH']
+    enum: ['ORANGE_MONEY', 'WAVE', 'FREE_MONEY', 'TOUCH_POINT', 'PAYTECH', 'CARD']
   },
   paymentStatus: {
     type: String,

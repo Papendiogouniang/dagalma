@@ -64,13 +64,17 @@ const EventDetail: React.FC = () => {
     setIsProcessing(true);
 
     try {
+      console.log('🚀 Initiating payment for event:', event._id);
+      
       const response = await axios.post(`${API_URL}/payments/initiate`, {
         eventId: event._id
       });
 
+      console.log('💳 Payment response:', response.data);
       // Redirection vers PayTech
       if (response.data.redirect_url) {
         toast.success('Redirection vers PayTech...');
+        console.log('🔗 Redirecting to:', response.data.redirect_url);
         window.location.href = response.data.redirect_url;
       } else {
         toast.error('Impossible de récupérer l\'URL de paiement.');

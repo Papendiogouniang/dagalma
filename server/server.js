@@ -45,6 +45,9 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/slides', slideRoutes);
 app.use('/api/users', userRoutes);
 
+// PayTech webhook endpoint (sans authentification)
+app.use('/api/payments/paytech/callback', express.raw({ type: 'application/json' }), paymentRoutes);
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ message: 'Kanzey Billetterie API is running!', status: 'OK' });
