@@ -12,7 +12,11 @@ const PaymentSuccess: React.FC = () => {
 
   const { data: ticket, isLoading } = useQuery(
     ['paymentStatus', ticketId],
-    () => axios.get(`${API_URL}/tickets/${ticketId}`).then(res => res.data),
+    () => axios.get(`${API_URL}/payments/status/${ticketId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    }).then(res => res.data),
     {
       enabled: !!ticketId,
       refetchInterval: (data) => {

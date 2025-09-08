@@ -64,11 +64,13 @@ const ticketSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// === Génération automatique de ticketId et QR code avant validation ===
-ticketSchema.pre('validate', function(next) {
+// Génération automatique de ticketId et QR code avant sauvegarde
+ticketSchema.pre('save', function(next) {
   if (!this.ticketId) {
-    // Exemple: TICKET-20250907-ABCDE
-    this.ticketId = `TICKET-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    // Format: KANZ-20250107-ABCDE
+    const timestamp = Date.now().toString().slice(-8);
+    const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+    this.ticketId = `KANZ-${timestamp}-${randomStr}`;
   }
 
   if (!this.qrCode) {

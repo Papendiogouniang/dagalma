@@ -64,29 +64,49 @@ const EventDetail: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      console.log('🚀 Initiating payment for event:', event._id);
+      console.log('🚀 === DÉBUT PAIEMENT CLIENT ===');
+      console.log('🎫 Event ID:', event._id);
+      console.log('🎫 Event Title:', event.title);
+      console.log('💰 Prix:', event.price, 'FCFA');
       
       const response = await axios.post(`${API_URL}/payments/initiate`, {
         eventId: event._id
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
       });
 
-      console.log('💳 Payment response:', response.data);
-      // Redirection vers PayTech
-      if (response.data.redirect_url) {
-        toast.success('Redirection vers PayTech...');
-        console.log('🔗 Redirecting to:', response.data.redirect_url);
+      console.log('✅ === RÉPONSE SERVEUR ===');
+      console.log('Status:', response.status);
+      console.log('Data:', response.data);
+
+      if (response.data.success && response.data.redirect_url) {
+        console.log('🔗 URL de redirection:', response.data.redirect_url);
+        toast.success('🔄 Redirection vers PayTech...');
+        
+        // Redirection vers PayTech
         window.location.href = response.data.redirect_url;
       } else {
-        toast.error('Impossible de récupérer l\'URL de paiement.');
-        console.error('PayTech response:', response.data);
+        console.error('❌ Pas d\'URL de redirection');
+        console.error('Réponse:', response.data);
+        toast.error('❌ Erreur: ' + (response.data.message || 'URL de paiement manquante'));
       }
     } catch (error: unknown) {
+      console.error('❌ === ERREUR PAIEMENT ===');
       if (axios.isAxiosError(error)) {
-        console.error('Payment error response:', error.response?.data || error.message);
-        toast.error(error.response?.data?.message || 'Erreur lors de l\'initiation du paiement');
+        console.error('Status:', error.response?.status);
+        console.error('Data:', error.response?.data);
+        console.error('Message:', error.message);
+        
+        const errorMessage = error.response?.data?.message || 
+                           error.response?.data?.error || 
+                           'Erreur lors de l\'initiation du paiement';
+        toast.error('❌ ' + errorMessage);
       } else {
-        console.error('Payment error:', error);
-        toast.error('Erreur inconnue lors du paiement');
+        console.error('Erreur inconnue:', error);
+        toast.error('❌ Erreur inconnue lors du paiement');
       }
     } finally {
       setIsProcessing(false);

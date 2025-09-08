@@ -41,7 +41,7 @@ export const generateTicketPDF = async (ticket) => {
 
       // Generate QR Code
       const qrCodeDataURL = await QRCode.toDataURL(
-        `${process.env.QR_CODE_BASE_URL}/${ticket.qrCode}`
+        `${process.env.QR_CODE_BASE_URL || 'http://localhost:5173/verify-ticket'}/${ticket.qrCode}`
       );
       const qrCodeBuffer = Buffer.from(qrCodeDataURL.split(',')[1], 'base64');
 
@@ -175,7 +175,7 @@ export const sendTicketEmail = async (ticket) => {
 
     // Generate QR code for email
     const qrCodeDataURL = await QRCode.toDataURL(
-      `${process.env.QR_CODE_BASE_URL}/${ticket.qrCode}`
+      `${process.env.QR_CODE_BASE_URL || 'http://localhost:5173/verify-ticket'}/${ticket.qrCode}`
     );
 
     const mailOptions = {

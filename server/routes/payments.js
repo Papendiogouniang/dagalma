@@ -14,21 +14,28 @@ router.post('/initiate', requireAuth, async (req, res) => {
   try {
     const { eventId } = req.body;
 
-    console.log('🎫 Initiating payment for event:', eventId);
+    console.log('🎫 === DÉBUT INITIATION PAIEMENT PAYTECH ===');
+    console.log('🎫 Event ID:', eventId);
+    console.log('🎫 User:', req.user.firstName, req.user.lastName);
 
     // Vérifier l'événement
     const event = await Event.findById(eventId);
     if (!event || !event.isActive) {
+      console.log('❌ Événement non trouvé ou inactif');
       return res.status(404).json({ message: 'Événement non trouvé' });
     }
     if (event.availableTickets <= 0) {
+      console.log('❌ Plus de billets disponibles');
       return res.status(400).json({ message: 'Plus de billets disponibles' });
     }
 
+    console.log('✅ Événement trouvé:', event.title);
+    console.log('✅ Prix:', event.price, 'FCFA');
+    console.log('✅ Places disponibles:', event.availableTickets);
+
     // Génération de la référence de paiement unique
-    const paymentRef = `KZ-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-    
-    console.log('💳 Payment reference generated:', paymentRef);
+    const paymentRef = `KANZ-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+    console.log('💳 Référence de paiement générée:', paymentRef);
 
     // Créer un ticket temporaire
     const ticket = new Ticket({
@@ -42,9 +49,10 @@ router.post('/initiate', requireAuth, async (req, res) => {
     });
 
     await ticket.save();
-    console.log('🎫 Ticket created:', ticket.ticketId);
+    console.log('🎫 Ticket temporaire créé:', ticket.ticketId);
+    console.log('🔗 QR Code généré:', ticket.qrCode);
 
-    // Préparer la requête PayTech
+    // Préparer la requête PayTech selon la documentation
     const paytechPayload = {
       item_name: `Billet - ${event.title}`,
       item_price: event.price,
@@ -65,7 +73,8 @@ router.post('/initiate', requireAuth, async (req, res) => {
       })
     };
 
-    console.log('📤 PayTech payload:', paytechPayload);
+    console.log('📤 === PAYLOAD PAYTECH ===');
+    console.log(JSON.stringify(paytechPayload, null, 2));
 
     // Headers pour PayTech
     const headers = {
@@ -74,45 +83,76 @@ router.post('/initiate', requireAuth, async (req, res) => {
       'Content-Type': 'application/json'
     };
 
-    console.log('🔑 PayTech headers prepared');
+    console.log('🔑 Headers PayTech configurés');
+    console.log('🔑 API_KEY:', process.env.PAYTECH_API_KEY ? 'Définie' : 'MANQUANTE');
+    console.log('🔑 API_SECRET:', process.env.PAYTECH_API_SECRET ? 'Définie' : 'MANQUANTE');
 
+    // Appel à l'API PayTech
+    console.log('📡 Appel API PayTech:', process.env.PAYTECH_API_URL);
+    
     const response = await axios.post(process.env.PAYTECH_API_URL, paytechPayload, {
-      headers
+      headers,
+      timeout: 30000 // 30 secondes de timeout
     });
 
-    console.log('✅ PayTech response:', response.data);
+    console.log('✅ === RÉPONSE PAYTECH ===');
+    console.log('Status:', response.status);
+    console.log('Data:', JSON.stringify(response.data, null, 2));
 
-    if (response.data && response.data.redirect_url) {
+    if (response.data && (response.data.redirect_url || response.data.redirectUrl)) {
+      const redirectUrl = response.data.redirect_url || response.data.redirectUrl;
+      
+      console.log('🔗 URL de redirection PayTech:', redirectUrl);
+      
       res.json({
+        success: true,
         message: 'Paiement initié avec succès',
         ticketId: ticket._id,
         paymentRef,
-        redirect_url: response.data.redirect_url,
+        redirect_url: redirectUrl,
         paytechResponse: response.data
       });
     } else {
-      console.error('❌ No redirect URL in PayTech response:', response.data);
+      console.error('❌ Pas d\'URL de redirection dans la réponse PayTech');
+      console.error('Réponse complète:', response.data);
+      
+      // Supprimer le ticket en cas d'erreur
+      await Ticket.findByIdAndDelete(ticket._id);
+      
       res.status(500).json({
+        success: false,
         message: 'Erreur PayTech: URL de redirection manquante',
         error: response.data
       });
     }
 
   } catch (error) {
-    console.error('❌ PayTech initiation error:', error.response?.data || error.message);
+    console.error('❌ === ERREUR PAYTECH ===');
+    console.error('Type:', error.constructor.name);
+    console.error('Message:', error.message);
     
-    // Supprimer le ticket en cas d'erreur
-    if (error.ticketId) {
-      try {
-        await Ticket.findByIdAndDelete(error.ticketId);
-      } catch (deleteError) {
-        console.error('Error deleting failed ticket:', deleteError);
-      }
+    if (error.response) {
+      console.error('Status:', error.response.status);
+      console.error('Data:', error.response.data);
+      console.error('Headers:', error.response.headers);
     }
+    
+    if (error.request) {
+      console.error('Request:', error.request);
+    }
+    
+    console.error('Stack:', error.stack);
 
     return res.status(500).json({
+      success: false,
       message: 'Erreur lors de l\'initiation du paiement',
-      error: error.response?.data || error.message
+      error: error.response?.data || error.message,
+      details: {
+        type: error.constructor.name,
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      }
     });
   }
 });
@@ -120,7 +160,9 @@ router.post('/initiate', requireAuth, async (req, res) => {
 // PayTech IPN Callback
 router.post('/paytech/callback', async (req, res) => {
   try {
-    console.log('🔔 PayTech IPN received:', req.body);
+    console.log('🔔 === CALLBACK PAYTECH REÇU ===');
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
 
     const { 
       type_event, 
@@ -133,19 +175,24 @@ router.post('/paytech/callback', async (req, res) => {
       custom_field 
     } = req.body;
 
+    console.log('📋 Type événement:', type_event);
+    console.log('📋 Référence commande:', ref_command);
+
     // Trouver le ticket par référence de paiement
     const ticket = await Ticket.findOne({ paymentId: ref_command })
       .populate('event')
       .populate('user');
 
     if (!ticket) {
-      console.error('❌ Ticket not found for payment reference:', ref_command);
+      console.error('❌ Ticket non trouvé pour la référence:', ref_command);
       return res.status(404).json({ message: 'Ticket non trouvé' });
     }
 
-    console.log('🎫 Ticket found:', ticket.ticketId);
+    console.log('🎫 Ticket trouvé:', ticket.ticketId);
 
     if (type_event === 'sale_complete') {
+      console.log('✅ Paiement réussi - Confirmation du billet');
+      
       // Paiement réussi
       ticket.status = 'confirmed';
       ticket.paymentStatus = 'completed';
@@ -156,42 +203,48 @@ router.post('/paytech/callback', async (req, res) => {
         $inc: { availableTickets: -1 }
       });
 
-      console.log('✅ Payment completed for ticket:', ticket.ticketId);
+      console.log('✅ Billet confirmé et places mises à jour');
 
       // Générer le PDF du billet
       try {
+        console.log('📄 Génération du PDF...');
         const pdfPath = await generateTicketPDF(ticket);
         ticket.pdfPath = pdfPath;
         await ticket.save();
-        console.log('📄 PDF generated:', pdfPath);
+        console.log('📄 PDF généré:', pdfPath);
 
         // Envoyer l'email avec le billet
+        console.log('📧 Envoi de l\'email...');
         await sendTicketEmail(ticket);
-        console.log('📧 Email sent to:', ticket.user.email);
+        console.log('📧 Email envoyé à:', ticket.user.email);
       } catch (pdfError) {
-        console.error('❌ PDF/Email error:', pdfError);
+        console.error('❌ Erreur PDF/Email:', pdfError);
       }
 
     } else if (type_event === 'sale_cancelled') {
-      // Paiement annulé
+      console.log('❌ Paiement annulé');
       ticket.status = 'cancelled';
       ticket.paymentStatus = 'cancelled';
       await ticket.save();
-      console.log('❌ Payment cancelled for ticket:', ticket.ticketId);
 
     } else if (type_event === 'sale_failed') {
-      // Paiement échoué
+      console.log('❌ Paiement échoué');
       ticket.status = 'cancelled';
       ticket.paymentStatus = 'failed';
       await ticket.save();
-      console.log('❌ Payment failed for ticket:', ticket.ticketId);
     }
 
-    res.status(200).json({ message: 'IPN processed successfully' });
+    res.status(200).json({ 
+      success: true,
+      message: 'IPN traité avec succès' 
+    });
 
   } catch (error) {
-    console.error('❌ PayTech IPN error:', error);
-    res.status(500).json({ message: 'Erreur lors du traitement de l\'IPN' });
+    console.error('❌ Erreur callback PayTech:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Erreur lors du traitement de l\'IPN' 
+    });
   }
 });
 
