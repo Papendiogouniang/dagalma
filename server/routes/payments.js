@@ -1,7 +1,5 @@
 import express from 'express';
 import axios from 'axios';
-import crypto from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
 import Ticket from '../models/Ticket.js';
 import Event from '../models/Event.js';
 import { requireAuth } from '../middleware/auth.js';
