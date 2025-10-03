@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "dev": "nodemon server.js",
     "start": "node server.js"
   },
   "dependencies": {
@@ -27,6 +28,7 @@
     "@types/node": "^20.8.0",
     "@types/nodemailer": "^6.4.11",
     "@types/pdfkit": "^0.12.12",
-    "@types/qrcode": "^1.5.2"
+    "@types/qrcode": "^1.5.2",
+    "nodemon": "^3.0.1"
   }
 }
