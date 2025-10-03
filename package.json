@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": ["src", "server"],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=server\" \"npm run dev --workspace=src\""
+    "dev": "concurrently \"npm run dev --workspace=server\" \"npm run dev --workspace=src\"",
+    "start": "node server/server.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

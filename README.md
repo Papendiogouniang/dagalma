@@ -30,7 +30,10 @@ This will start the backend on `http://localhost:5000` and frontend on `http://l
 - Set environment variable: `VITE_API_URL=https://your-backend-url.com/api`
 
 ### Backend (Render)
-- Deploy the `server/` directory to Render.
+- Deploy the entire project to Render (or just the `server/` directory).
+- **Important:** In Render settings, set the **Start Command** to `npm start` (not `node server.js`)
+- If deploying the entire project, keep the Root Directory as default (empty)
+- If deploying only `server/`, set Root Directory to `server`
 - Set environment variables in Render dashboard (MONGODB_URI, JWT_SECRET, etc.)
 
 ## Environment Variables
